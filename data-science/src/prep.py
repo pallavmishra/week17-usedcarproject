@@ -13,55 +13,47 @@ import mlflow
 
 def parse_args():
     '''Parse input arguments'''
-    parser = argparse.ArgumentParser("prep")
-    parser.add_argument("--input_data", type=str, help="Path to raw data")
-    parser.add_argument("--train_data", type=str, help="Path to train dataset")
-    parser.add_argument("--test_data", type=str, help="Path to test dataset")
-    parser.add_argument("--test_train_ratio", type=float, default=0.2, help="Test-train ratio")
+    parser = argparse.ArgumentParser("prep")  # Create an ArgumentParser object
+    parser.add_argument("--raw_data", type=str, help="Path to raw data")  # Specify the type for raw data (str)
+    parser.add_argument("--train_data", type=str, help="Path to train dataset")  # Specify the type for train data (str)
+    parser.add_argument("--test_data", type=str, help="Path to test dataset")  # Specify the type for test data (str)
+    parser.add_argument("--test_train_ratio", type=float, default=0.2, help="Test-train ratio")  # Specify the type (float) and default value (0.2) for test-train ratio
     args = parser.parse_args()
     return args
 
-def main(args):
+def main(args):  # Write the function name for the main data preparation logic
     '''Read, preprocess, split, and save datasets'''
     # Reading Data
-    df = pd.read_csv(args.input_data)
+    df = pd.read_csv(args.raw_data)
     
-    # Step 1: Perform label encoding for the Segment column
-    label_encoder = LabelEncoder()
-    df['Segment'] = label_encoder.fit_transform(df['Segment'])
+    # ------- WRITE YOUR CODE HERE -------
+    # Step 1: Perform label encoding to convert categorical features into numerical values for model compatibility.
+    le = LabelEncoder()
+    for column in df.select_dtypes(include=['object']).columns:
+        df[column] = le.fit_transform(df[column])
     
-    # Step 2: Split the dataset into training and testing sets
-    train_df, test_df = train_test_split(
-        df, 
-        test_size=args.test_train_ratio, 
-        random_state=42
-    )
+    # Step 2: Split the dataset into training and testing sets using train_test_split with specified test size and random state.
+    train_df, test_df = train_test_split(df, test_size=args.test_train_ratio, random_state=42)
     
-    # Step 3: Save the training and testing datasets as CSV files
-    output_train = os.path.join(args.train_data, "train.csv")
-    output_test = os.path.join(args.test_data, "test.csv")
+    # Step 3: Save the training and testing datasets as CSV files in separate directories for easier access and organization.
+    os.makedirs(args.train_data, exist_ok=True)
+    os.makedirs(args.test_data, exist_ok=True)
+    train_df.to_csv(os.path.join(args.train_data, "train.csv"), index=False)
+    test_df.to_csv(os.path.join(args.test_data, "test.csv"), index=False)
     
-    train_df.to_csv(output_train, index=False)
-    test_df.to_csv(output_test, index=False)
-    
-    # Step 4: Log the number of rows in datasets
-    mlflow.log_metric("train_rows", train_df.shape[0])
-    mlflow.log_metric("test_rows", test_df.shape[0])
-    
-    print(f"Training data saved to: {output_train}")
-    print(f"Testing data saved to: {output_test}")
+    # Step 4: Log the number of rows in the training and testing datasets as metrics for tracking and evaluation.
+    mlflow.log_metric("train_rows", len(train_df))
+    mlflow.log_metric("test_rows", len(test_df))
 
 if __name__ == "__main__":
     mlflow.start_run()
-    
     # Parse Arguments
-    args = parse_args()
-    
+    args = parse_args()  # Call the function to parse arguments
     lines = [
-        f"Raw data path: {args.input_data}",
-        f"Train dataset output path: {args.train_data}",
-        f"Test dataset path: {args.test_data}",
-        f"Test-train ratio: {args.test_train_ratio}",
+        f"Raw data path: {args.raw_data}",  # Print the raw_data path
+        f"Train dataset output path: {args.train_data}",  # Print the train_data path
+        f"Test dataset path: {args.test_data}",  # Print the test_data path
+        f"Test-train ratio: {args.test_train_ratio}",  # Print the test_train_ratio
     ]
     
     for line in lines:
